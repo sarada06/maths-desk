@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stage 8 Maths Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: a single notebook column on graph paper — big start button, mode picker, topic chooser that builds the opening sentence, progress ticks. */
+:root{
+  --paper:#f3f7fb; --grid:#dbe6f1; --ink:#14213d; --muted:#55657f;
+  --card:#ffffff; --line:#c9d6e5; --saffron:#e8962b; --saffron-ink:#3a2200; --done:#2f7d5b;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",ui-sans-serif,system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0f1726; --grid:#1a2538; --ink:#e7edf6; --muted:#9aa9c0;
+  --card:#162033; --line:#2a3850; --saffron:#f0a644; --saffron-ink:#2a1800; --done:#5fc394; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0f1726; --grid:#1a2538; --ink:#e7edf6; --muted:#9aa9c0;
+  --card:#162033; --line:#2a3850; --saffron:#f0a644; --saffron-ink:#2a1800; --done:#5fc394; color-scheme:dark}
+
+body{
+  margin:0;
+  background-color:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px;
+  color:var(--ink); font:16px/1.55 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:24px 48px;
+}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1,h2{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.1}
+h1{font-size:clamp(2rem,6vw,2.8rem);font-weight:800;letter-spacing:-.01em}
+h2{font-size:1.3rem;font-weight:600}
+p{margin:0}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+header{display:flex;flex-direction:column;gap:10px}
+header p{color:var(--muted);max-width:60ch}
+
+.start{background:var(--card);border:2px solid var(--ink);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:6px 6px 0 var(--ink)}
+.go{display:inline-flex;align-items:center;justify-content:center;gap:10px;background:var(--saffron);color:var(--saffron-ink);font:800 1.15rem var(--display);text-decoration:none;padding:16px 22px;border-radius:10px;border:2px solid var(--ink)}
+.go:hover{filter:brightness(1.05)}
+.go:focus-visible,button:focus-visible{outline:3px solid var(--saffron);outline-offset:3px}
+.small a{color:var(--ink);text-decoration-color:var(--saffron);text-decoration-thickness:2px}
+.small{font-size:.9rem;color:var(--muted)}
+
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;padding:0;margin:0;list-style:none;counter-reset:s}
+.steps li{counter-increment:s;display:flex;gap:10px;align-items:flex-start;min-width:0}
+.steps li::before{content:counter(s);flex:none;width:28px;height:28px;border-radius:50%;border:2px solid var(--ink);display:grid;place-items:center;font:600 .85rem var(--mono)}
+
+section{display:flex;flex-direction:column;gap:14px}
+.modes{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:700 .95rem var(--body);padding:9px 14px;border-radius:999px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+
+.say{background:var(--card);border:2px dashed var(--saffron);border-radius:12px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.say q{font:500 1rem var(--mono);quotes:"“" "”";min-width:0;flex:1 1 260px}
+.copy{font:700 .9rem var(--body);background:transparent;border:2px solid var(--ink);color:var(--ink);border-radius:8px;padding:7px 12px;cursor:pointer}
+
+.strand{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.strand summary{cursor:pointer;list-style:none;padding:14px 16px;display:flex;justify-content:space-between;gap:12px;align-items:center;font:600 1.05rem var(--display)}
+.strand summary::-webkit-details-marker{display:none}
+.strand summary .count{font:500 .8rem var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.strand ul{list-style:none;margin:0;padding:0 8px 10px}
+.topic{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:8px}
+.topic:hover{background:var(--paper)}
+.topic input{width:20px;height:20px;accent-color:var(--done);flex:none}
+.topic button{all:unset;cursor:pointer;flex:1;min-width:0;padding:4px 0}
+.topic button:focus-visible{outline:2px solid var(--saffron);border-radius:4px}
+.topic.picked button{font-weight:700;text-decoration:underline;text-decoration-color:var(--saffron);text-decoration-thickness:3px;text-underline-offset:4px}
+.topic.isdone button{color:var(--muted)}
+.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar span{display:block;height:100%;background:var(--done);width:0;transition:width .3s}
+@media (prefers-reduced-motion:reduce){.bar span{transition:none}}
+
+.tips{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.tip{border-left:3px solid var(--saffron);padding:4px 0 4px 12px;min-width:0}
+.tip b{display:block;font-family:var(--display)}
+footer{font-size:.85rem;color:var(--muted)}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Cambridge Lower Secondary · Stage 8 Mathematics</span>
+    <h1>Maths with Sayali Ma'am</h1>
+    <p>Your voice tutor for doubts, new topics and practice. She explains one step at a time and asks you questions back, so keep your notebook open.</p>
+  </header>
+
+  <div class="start">
+    <ol class="steps">
+      <li><span>Open your notebook and keep a pencil ready.</span></li>
+      <li><span>Pick what you want to do and a topic below.</span></li>
+      <li><span>Tap the Sayali Ma'am button at the bottom of the screen, allow the microphone, and say your sentence.</span></li>
+    </ol>
+    <p class="small">Works best on a laptop or tablet with headphones in a quiet room. If the button doesn't appear, <a class="link" href="https://elevenlabs.io/app/talk-to?agent_id=agent_1501m5nw0n3ge3aaxpdg13ygyxwk" target="_blank" rel="noopener">open the tutor in a new tab</a>.</p>
+  </div>
+
+  <section aria-labelledby="mode-h">
+    <h2 id="mode-h">What do you want to do?</h2>
+    <div class="modes" role="group" aria-label="Session type">
+      <button class="chip" id="m-learn" data-mode="learn" aria-pressed="true">Learn a topic</button>
+      <button class="chip" id="m-doubt" data-mode="doubt" aria-pressed="false">Clear a doubt</button>
+      <button class="chip" id="m-quiz" data-mode="quiz" aria-pressed="false">Practise questions</button>
+    </div>
+    <div class="say">
+      <q id="phrase"></q>
+      <button class="copy" id="copy">Copy</button>
+    </div>
+    <p class="small">Say this when she asks what you'd like to do today.</p>
+  </section>
+
+  <section aria-labelledby="topics-h">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+      <h2 id="topics-h">Pick a topic</h2>
+      <span class="small" id="progress-label"></span>
+    </div>
+    <div class="bar" aria-hidden="true"><span id="bar"></span></div>
+    <p class="small">Tap a topic to use it in your sentence. Tick it once you can do it without help.</p>
+    <div id="strands" style="display:flex;flex-direction:column;gap:10px"></div>
+  </section>
+
+  <section aria-labelledby="tips-h">
+    <h2 id="tips-h">Good session habits</h2>
+    <div class="tips">
+      <div class="tip"><b>Read the full question</b>For a doubt, read the question out exactly and say which step you're stuck on.</div>
+      <div class="tip"><b>Write every step</b>She can't see your page, so say your working aloud as you write it.</div>
+      <div class="tip"><b>Try before asking</b>She'll give hints first. Have a go, even if you're unsure.</div>
+      <div class="tip"><b>20 minutes, then a break</b>Short sessions stick better. Stretch and drink water.</div>
+    </div>
+  </section>
+
+  <footer>Ticks are saved in this browser only. Homework you hand in should be your own work; Sayali Ma'am teaches the method.</footer>
+</div>
+
+<script>
+const STRANDS=[
+ ["Number",["Negative numbers","Prime factorisation","HCF and LCM","Squares, cubes and roots","Index laws","Order of operations","Rounding to significant figures","Estimation"]],
+ ["Fractions, decimals and percentages",["Adding and subtracting fractions","Multiplying and dividing fractions","Recurring decimals","Converting fractions, decimals and percentages","Percentage increase and decrease","One quantity as a percentage of another"]],
+ ["Ratio and proportion",["Simplifying and sharing ratios","Direct proportion","Inverse proportion","Best-value comparisons","Speed, distance and time"]],
+ ["Algebra",["Simplifying expressions","Expanding brackets","Factorising","Substitution into formulae","Changing the subject","Equations with unknowns on both sides","Forming equations from word problems","Inequalities on a number line"]],
+ ["Sequences, functions and graphs",["The nth term of a sequence","Function machines and inverses","Straight-line graphs","Gradient and y-intercept","Distance-time and conversion graphs"]],
+ ["Geometry and measure",["Angles on parallel lines","Angles in polygons","Constructions","Bearings","Plans and elevations","Area of trapeziums and compound shapes","Circumference and area of circles","Volume and surface area of prisms","Converting area and volume units"]],
+ ["Transformations",["Reflection, rotation and translation","Enlargement","Describing transformations","Midpoint of a line segment"]],
+ ["Statistics and probability",["Grouped frequency tables","Mean from a frequency table","Scatter graphs and correlation","Comparing distributions","Mutually exclusive events","Sample space diagrams","Experimental probability"]]
+];
+let mode="learn", topic=null, done={};
+try{done=JSON.parse(localStorage.getItem("s8done")||"{}")}catch(e){}
+try{const m=localStorage.getItem("s8mode"); if(m) mode=m}catch(e){}
+const save=()=>{try{localStorage.setItem("s8done",JSON.stringify(done));localStorage.setItem("s8mode",mode)}catch(e){}};
+
+function phrase(){
+  const t=topic?topic.toLowerCase():null;
+  if(mode==="learn") return t?`Please teach me ${t}, starting from the basics.`:"Please teach me a new topic. Can you suggest one?";
+  if(mode==="doubt") return t?`I have a doubt in ${t}. Can I read you the question?`:"I have a doubt from class. Can I read you the question?";
+  return t?`Can you quiz me on ${t}? Start easy and make it harder.`:"Can you give me some mixed practice questions?";
+}
+function render(){
+  document.getElementById("phrase").textContent=phrase();
+  document.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",String(c.dataset.mode===mode)));
+  const all=STRANDS.flatMap(s=>s[1]); const n=all.filter(t=>done[t]).length;
+  document.getElementById("progress-label").textContent=`${n} of ${all.length} topics ticked`;
+  document.getElementById("bar").style.width=(n/all.length*100)+"%";
+  document.querySelectorAll(".topic").forEach(li=>{
+    li.classList.toggle("picked",li.dataset.t===topic);
+    li.classList.toggle("isdone",!!done[li.dataset.t]);
+  });
+  STRANDS.forEach((s,i)=>{document.getElementById("c"+i).textContent=`${s[1].filter(t=>done[t]).length}/${s[1].length}`});
+}
+const host=document.getElementById("strands");
+STRANDS.forEach(([name,topics],i)=>{
+  const d=document.createElement("details"); d.className="strand"; if(i===0) d.open=true;
+  d.innerHTML=`<summary><span>${name}</span><span class="count" id="c${i}"></span></summary><ul></ul>`;
+  const ul=d.querySelector("ul");
+  topics.forEach((t,j)=>{
+    const li=document.createElement("li"); li.className="topic"; li.dataset.t=t;
+    const id=`t${i}-${j}`;
+    li.innerHTML=`<input type="checkbox" id="${id}" aria-label="Mark ${t} as done"><button type="button"></button>`;
+    li.querySelector("button").textContent=t;
+    const cb=li.querySelector("input"); cb.checked=!!done[t];
+    cb.addEventListener("change",()=>{done[t]=cb.checked; if(!cb.checked) delete done[t]; save(); render()});
+    li.querySelector("button").addEventListener("click",()=>{topic=(topic===t?null:t); render(); document.getElementById("mode-h").scrollIntoView({behavior:"smooth",block:"start"})});
+    ul.appendChild(li);
+  });
+  host.appendChild(d);
+});
+document.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>{mode=c.dataset.mode; save(); render()}));
+document.getElementById("copy").addEventListener("click",async e=>{
+  const btn=e.currentTarget, text=document.getElementById("phrase").textContent;
+  try{await navigator.clipboard.writeText(text); btn.textContent="Copied"}
+  catch(err){const r=document.createRange(); r.selectNodeContents(document.getElementById("phrase")); const s=getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent="Selected"}
+  setTimeout(()=>btn.textContent="Copy",1500);
+});
+render();
+</script>
+
+<elevenlabs-convai agent-id="agent_1501m5nw0n3ge3aaxpdg13ygyxwk"></elevenlabs-convai>
+<script src="https://elevenlabs.io/convai-widget/index.js" async type="text/javascript"></script>
+</body>
+</html>
