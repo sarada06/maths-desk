@@ -80,6 +80,15 @@ section{display:flex;flex-direction:column;gap:14px}
 .tips{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
 .tip{border-left:3px solid var(--saffron);padding:4px 0 4px 12px;min-width:0}
 .tip b{display:block;font-family:var(--display)}
+
+.memory{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.memory ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.memory li{border-left:3px solid var(--done);padding-left:12px;min-width:0}
+.memory time{font:500 .75rem var(--mono);color:var(--muted);letter-spacing:.04em}
+.memory .k{font-weight:700}
+.memrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.danger{font:700 .85rem var(--body);background:transparent;border:2px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 12px;cursor:pointer}
+.danger.sure{border-color:#c0392b;color:#c0392b}
 footer{font-size:.85rem;color:var(--muted)}
 </style>
 
@@ -125,6 +134,18 @@ footer{font-size:.85rem;color:var(--muted)}
     <div id="strands" style="display:flex;flex-direction:column;gap:10px"></div>
   </section>
 
+  <section aria-labelledby="mem-h">
+    <h2 id="mem-h">What Sayali Ma'am remembers</h2>
+    <div class="memory">
+      <p class="small" id="mem-empty">Nothing yet. At the end of each session she notes what you covered and what to practise next, so she can pick up where you left off.</p>
+      <ol id="mem-list"></ol>
+      <div class="memrow">
+        <span class="small" id="mem-where">Saved only in this browser on this device.</span>
+        <button class="danger" id="forget" type="button" hidden>Forget everything</button>
+      </div>
+    </div>
+  </section>
+
   <section aria-labelledby="tips-h">
     <h2 id="tips-h">Good session habits</h2>
     <div class="tips">
@@ -135,7 +156,7 @@ footer{font-size:.85rem;color:var(--muted)}
     </div>
   </section>
 
-  <footer>Ticks are saved in this browser only. Homework you hand in should be your own work; Sayali Ma'am teaches the method.</footer>
+  <footer>Ticks and session notes are saved in this browser only. Homework you hand in should be your own work; Sayali Ma'am teaches the method.</footer>
 </div>
 
 <script>
@@ -200,6 +221,71 @@ render();
 </script>
 
 <elevenlabs-convai agent-id="agent_1501m5nw0n3ge3aaxpdg13ygyxwk"></elevenlabs-convai>
+<script>
+/* Session memory: the tutor calls save_progress; notes live in this browser and go back to her as dynamic variables. */
+const MEMKEY="s8memory";
+function loadMem(){try{const m=JSON.parse(localStorage.getItem(MEMKEY)||"{}");return {name:m.name||"",notes:Array.isArray(m.notes)?m.notes:[]}}catch(e){return {name:"",notes:[]}}}
+function saveMem(m){try{localStorage.setItem(MEMKEY,JSON.stringify(m))}catch(e){}}
+function vars(){
+  const m=loadMem(), recent=m.notes.slice(0,5);
+  const memory=recent.length?recent.map(n=>`- ${n.date}: ${n.summary}${n.struggles?` Struggled with: ${n.struggles}.`:""}${n.next_step?` Next time: ${n.next_step}`:""}`).join("\n"):"This is the first session. Nothing is known about the student yet.";
+  const hi=m.name?`Hello ${m.name}`:"Hello";
+  const greeting=recent.length
+    ?`${hi}, welcome back! Good to have you again. Shall we carry on from last time, clear a doubt, or practise something new?`
+    :`${hi}! I'm Sayali Ma'am, your maths tutor. Before we start, tell me your name and what you'd like to do today: learn a new topic, clear a doubt from class, or practise some questions?`;
+  return {greeting,student_name:m.name,student_memory:memory};
+}
+function saveProgress(p){
+  p=p||{}; const m=loadMem();
+  if(p.student_name&&String(p.student_name).trim()) m.name=String(p.student_name).trim().split(/\s+/)[0].slice(0,30);
+  if(p.summary&&String(p.summary).trim()){
+    const today=new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
+    const note={date:today,summary:String(p.summary).slice(0,400),struggles:String(p.struggles||"").slice(0,300),next_step:String(p.next_step||"").slice(0,300)};
+    if(m.notes[0]&&m.notes[0].date===today&&m.notes[0].session===sessionId) m.notes[0]={...note,session:sessionId};
+    else m.notes.unshift({...note,session:sessionId});
+    m.notes=m.notes.slice(0,12);
+  }
+  saveMem(m); renderMem(); syncWidget();
+  return "saved";
+}
+let sessionId=String(Date.now());
+function renderMem(){
+  const m=loadMem(), list=document.getElementById("mem-list");
+  list.innerHTML="";
+  m.notes.forEach(n=>{
+    const li=document.createElement("li");
+    li.innerHTML=`<time></time><div class="s"></div>`;
+    li.querySelector("time").textContent=n.date;
+    li.querySelector(".s").textContent=n.summary;
+    if(n.struggles){const d=document.createElement("div");d.innerHTML='<span class="k">Watch out for: </span>';d.append(n.struggles);li.append(d)}
+    if(n.next_step){const d=document.createElement("div");d.innerHTML='<span class="k">Next time: </span>';d.append(n.next_step);li.append(d)}
+    list.append(li);
+  });
+  document.getElementById("mem-empty").hidden=m.notes.length>0;
+  document.getElementById("forget").hidden=!(m.notes.length||m.name);
+  document.getElementById("mem-where").textContent=m.name?`Remembering ${m.name}. Saved only in this browser on this device.`:"Saved only in this browser on this device.";
+}
+const forget=document.getElementById("forget");
+forget.addEventListener("click",()=>{
+  if(!forget.classList.contains("sure")){forget.classList.add("sure");forget.textContent="Tap again to forget";setTimeout(()=>{forget.classList.remove("sure");forget.textContent="Forget everything"},4000);return}
+  try{localStorage.removeItem(MEMKEY)}catch(e){}
+  forget.classList.remove("sure");forget.textContent="Forget everything";renderMem();syncWidget();
+});
+function syncWidget(){
+  const w=document.querySelector("elevenlabs-convai"); if(!w) return;
+  w.setAttribute("dynamic-variables",JSON.stringify(vars()));
+}
+document.addEventListener("DOMContentLoaded",()=>{
+  renderMem(); syncWidget();
+  const w=document.querySelector("elevenlabs-convai");
+  w.addEventListener("elevenlabs-convai:call",e=>{
+    sessionId=String(Date.now());
+    const cfg=e.detail&&e.detail.config; if(!cfg) return;
+    cfg.dynamicVariables={...(cfg.dynamicVariables||{}),...vars()};
+    cfg.clientTools={...(cfg.clientTools||{}),save_progress:saveProgress};
+  });
+});
+</script>
 <script src="https://elevenlabs.io/convai-widget/index.js" async type="text/javascript"></script>
 </body>
 </html>
