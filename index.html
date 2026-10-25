@@ -98,14 +98,14 @@ footer{font-size:.85rem;color:var(--muted)}
   <header>
     <span class="eyebrow">Cambridge Lower Secondary · Stage 8 Mathematics</span>
     <h1>Maths with Sayali Ma'am</h1>
-    <p>Your voice tutor for doubts, new topics and practice. She explains one step at a time and asks you questions back, so keep your notebook open.</p>
+    <p>Practise maths in writing for free, then invite Sayali Ma’am for an optional voice explanation. Keep your notebook open.</p>
   </header>
 
   <div class="start">
     <ol class="steps">
       <li><span>Open your notebook and keep a pencil ready.</span></li>
       <li><span>Pick what you want to do and a topic below.</span></li>
-      <li><span>Tap the Sayali Ma'am button at the bottom of the screen, allow the microphone, and say your sentence.</span></li>
+      <li><span>Use written practice first. For a voice discussion, select Enable voice tutor and start the conversation using the talk control.</span></li>
     </ol>
     <p class="small">Works best on a laptop or tablet with headphones in a quiet room. If the button doesn't appear, <a class="link" href="https://elevenlabs.io/app/talk-to?agent_id=agent_1501m5nw0n3ge3aaxpdg13ygyxwk" target="_blank" rel="noopener">open the tutor in a new tab</a>.</p>
   </div>
@@ -220,7 +220,7 @@ document.getElementById("copy").addEventListener("click",async e=>{
 render();
 </script>
 
-<elevenlabs-convai agent-id="agent_1501m5nw0n3ge3aaxpdg13ygyxwk"></elevenlabs-convai>
+<section class="wrap" aria-labelledby="voice-h" style="margin-top:24px"><div class="start"><h2 id="voice-h">Sayali Ma’am — voice on demand</h2><p class="small">Written practice and hints cost no voice credits. Enable voice only when you want to talk through a doubt. Starting a conversation may use ElevenLabs credits; end the call when finished.</p><div class="modes"><button class="chip" id="voice-enable">Enable voice tutor</button></div><p class="small" id="voice-state" role="status">Voice off. No conversation connected.</p><div id="voice-host"></div></div></section>
 <script>
 /* Session memory: the tutor calls save_progress; notes live in this browser and go back to her as dynamic variables. */
 const MEMKEY="s8memory";
@@ -278,7 +278,7 @@ function syncWidget(){
 document.addEventListener("DOMContentLoaded",()=>{
   renderMem(); syncWidget();
   const w=document.querySelector("elevenlabs-convai");
-  w.addEventListener("elevenlabs-convai:call",e=>{
+  if(w) w.addEventListener("elevenlabs-convai:call",e=>{
     sessionId=String(Date.now());
     const cfg=e.detail&&e.detail.config; if(!cfg) return;
     cfg.dynamicVariables={...(cfg.dynamicVariables||{}),...vars()};
@@ -286,7 +286,33 @@ document.addEventListener("DOMContentLoaded",()=>{
   });
 });
 </script>
-<script src="https://elevenlabs.io/convai-widget/index.js" async type="text/javascript"></script>
+
+<script>
+/* ElevenLabs loads only after a student explicitly enables voice. */
+document.getElementById("voice-enable").addEventListener("click",function(){
+ const button=this, status=document.getElementById("voice-state"), host=document.getElementById("voice-host");
+ if(host.querySelector("elevenlabs-convai"))return;
+ button.disabled=true;
+ status.textContent="Voice widget loading. A call will not start until you use its talk control.";
+ const widget=document.createElement("elevenlabs-convai");
+ widget.setAttribute("agent-id","agent_1501m5nw0n3ge3aaxpdg13ygyxwk");
+ widget.setAttribute("dynamic-variables",JSON.stringify({...vars(),selected_topic:topic||"",learning_mode:mode}));
+ widget.addEventListener("elevenlabs-convai:call",e=>{
+  sessionId=String(Date.now());
+  const cfg=e.detail&&e.detail.config;if(!cfg)return;
+  cfg.dynamicVariables={...(cfg.dynamicVariables||{}),...vars(),selected_topic:topic||"",learning_mode:mode};
+  cfg.clientTools={...(cfg.clientTools||{}),save_progress:saveProgress};
+  status.textContent="Voice tutor ready. End each call promptly to conserve credits.";
+ });
+ host.appendChild(widget);
+ const script=document.createElement("script");
+ script.src="https://elevenlabs.io/convai-widget/index.js";
+ script.async=true;
+ script.onerror=()=>{widget.remove();script.remove();button.disabled=false;status.textContent="Voice could not load. Written practice still works."};
+ document.body.appendChild(script);
+ button.textContent="Voice enabled";
+});
+</script>
 <script src="./tutor-upgrade.js"></script>
 </body>
 </html>
